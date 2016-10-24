@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>TodoMVC</title>
+	<style type="text/css">
+	.done {
+		text-decoration: line-through;
+	}
+	</style>
+</head>
+<body>
+	<div id="todomvc">
+		<input v-model="newTodo" @keyup.enter="addTodo" placeholder="What needs to be done?"></input>
+		<ul>
+			<li v-for="todo in todos | todosFilter ">
+				<input type="checkbox" v-model="todo.done" {{ todo.done ? 'checked' : '' }} >
+				<span v-bind:class="{'done':todo.done}" @dblclick="editTodo($index)" v-show="!todo.editing">{{ todo.text }}</span>
+				<input type="text" v-model="todo.text" v-show="todo.editing" @keyup.enter="stopEdit($index)">
+				<button @click="removeTodo($index)">X</button> 
+			</li>
+		</ul>
+		<div v-show="todos.length > 0" >
+			<div>{{ leftItemsCount }} item{{ leftItemsCount > 1 ? 's':'' }} left</div>
+			<ul>
+				<li><a href="#All">All</a></li>
+				<li><a href="#Todos">Todos</a></li>
+				<li><a href="#Done">Done</a></li>
+			</ul>
+			<button v-show="leftItemsCount != todos.length" @click="clearCompleted">clear completed</button>
+		</div>
+	</div>
+</body>
+<script type="text/javascript" src="vue.js"></script>
+<script type="text/javascript">
+	(function(exports){
+		var STORAGE_KEY = 'todos-vuejs';
+    	exports.todoStorage = {
+	        fetch: function () {
+	            return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+	        },
+	        save: function (todos) {
+	            localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
+	        }
+    	};
+	})(window)
+
+	Vue.filter('todosFilter', function (value) {
+		var opt = this.filter
+		if(opt === '#All') {
+			return value
+		} else if(opt === '#Todos') {
+			return this.todos.filter(function(ele){
+				return ele.done == false
+			})
+		} else if(opt === '#Done') {
+			return this.todos.filter(function(ele){
+				return ele.done == true
+			})
+		}
+	})
+
+	var app = new Vue({
+		el:'#todomvc',
+		data:{
+			newTodo:'',
+			todos:todoStorage.fetch(),
+			filter:'#All'
+		},
+		watch:{
+			todos:function(){
+				todoStorage.save(this.todos)
+			}
+		},
+		methods:{
+			addTodo:function(){
+				this.todos.push({
+					text:this.newTodo,
+					done:false,
+					editing:false,
+				})
+				this.newTodo = ''
+			},
+			removeTodo:function(index){
+				this.todos.splice(index, 1)
+			},
+			clearCompleted:function(){
+				this.todos = this.todos.filter(function(ele){
+					return ele.done == false
+				})
+			},
+			editTodo:function(index) {
+				this.todos[index].editing = true
+			},
+			stopEdit:function(index) {
+				this.todos[index].editing = false
+			}
+		},
+		computed:{
+			leftItemsCount:function(){
+				return this.todos.reduce(function(count,ele){
+					return ele.done ? count : count + 1
+				},0)
+			}
+		}
+	})
+
+	window.onhashchange = function(event) {
+		app.filter = location.hash
+	}
+
+	
+	
+</script>
+</html>
